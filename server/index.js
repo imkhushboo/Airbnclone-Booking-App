@@ -12,6 +12,8 @@ app.use(express.json());
 const jwt = require('jsonwebtoken');
 const multer = require('multer');
 const Place = require('./models/Place.js');
+const Booking = require('./models/Booking.js');
+const { resolve } = require('path');
 app.use('/uploads', express.static(__dirname + '/uploads'))
 app.use(cors({
     credentials: true,
@@ -241,6 +243,48 @@ app.get('/places', async (req, res) => {
     })
 })
 
+function getUserDetails(req) {
+    return new Promise((resolve, reject) => {
+        jwt.verify(req.cookies.token, jwtSecret, {}, async (err, user) => {
+            if (err) reject(err);
+            resolve(user);
+        }
+        )
+    }
+    )
+
+}
+
+app.post('/booking', async (req, res) => {
+    const { name, mobile, totalNights, checkin, checkout, prices, maxguest, place } = req.body;
+    const user = await getUserDetails(req);
+    // console.log(user.id);
+    const response = await Booking.create({
+        place,
+        user: user.id,
+        name,
+        mobile,
+        totalNights,
+        checkin,
+        checkout,
+        prices,
+        maxguest
+    })
+
+    res.json(response);
+})
+
+
+
+
+app.get('/bookings', async (req, res) => {
+    const user = await getUserDetails(req);
+    // console.log(user);
+    const response = await Booking.find({ user: user.id }).populate('place');
+
+    res.json(response);
+
+})
 
 app.listen(4000, () => {
     console.log("running finee");
